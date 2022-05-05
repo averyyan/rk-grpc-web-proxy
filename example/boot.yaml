@@ -1,0 +1,12 @@
+---
+grpc:
+  - name: test                        # 测试名称
+    port: 8001                        # grpc 端口
+    enabled: true                     # 是否使用
+
+grpcweb:
+  - name: testProxy
+    bindAddress: 0.0.0.0              # 代理绑定地址
+    bindPort: 8000                    # 代理绑定端口
+    enabled: true                     # 是否使用
+    grpcEntry: test                   # grpc 实例
