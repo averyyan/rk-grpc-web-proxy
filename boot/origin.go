@@ -1,4 +1,4 @@
-package rkgrpcweb
+package rkgrpcwebproxy
 
 import (
 	"github.com/improbable-eng/grpc-web/go/grpcweb"

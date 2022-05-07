@@ -1,4 +1,4 @@
-module rkgrpcweb
+module rkgrpcwebproxy
 
 go 1.17
 

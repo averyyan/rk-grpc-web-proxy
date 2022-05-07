@@ -1,4 +1,4 @@
-package rkgrpcweb
+package rkgrpcwebproxy
 
 import (
 	"context"
@@ -22,6 +22,37 @@ const (
 
 func init() {
 	rkentry.RegisterEntryRegFunc(RegisterGRPCWebYAML)
+}
+
+type GRPCWebEntry struct {
+	Name        string `yaml:"name" json:"name"`
+	Enabled     bool   `yaml:"enabled" json:"enabled"`
+	Description string `yaml:"description" json:"description"`
+	Type        string `yaml:"type" json:"type"`
+
+	LoggerEntry *rkentry.LoggerEntry `json:"-" yaml:"-"`
+	GrpcEntry   *rkgrpc.GrpcEntry    `yaml:"-" json:"-"`
+	CertEntry   *rkentry.CertEntry   `json:"-" yaml:"-"`
+
+	ServerAddress string `yaml:"serverAddress" json:"server_address"`
+	BindAddress   string `yaml:"bindAddress" json:"bind_address"`
+	BindPort      int    `yaml:"bindPort" json:"bind_port"`
+
+	MaxCallRecvMsgSize  int           `yaml:"maxCallRecvMsgSize" json:"max_call_recv_msg_size"`
+	AllowedOrigins      []string      `yaml:"allowedOrigins" json:"allowed_origins"`
+	AllowedHeaders      []string      `yaml:"allowedHeaders" json:"allowed_headers"`
+	Websockets          *Websockets   `yaml:"websockets" json:"websockets"`
+	Debug               bool          `yaml:"debug" json:"debug"`
+	HttpMaxWriteTimeout time.Duration `yaml:"http_max_write_timeout" json:"http_max_write_timeout"`
+	HttpMaxReadTimeout  time.Duration `yaml:"http_max_read_timeout" json:"http_max_read_timeout"`
+}
+
+type GRPCWebEntryOption func(*GRPCWebEntry)
+
+func WithDebug(debug bool) GRPCWebEntryOption {
+	return func(entry *GRPCWebEntry) {
+		entry.Debug = debug
+	}
 }
 
 func GetGRPCWebEntry(name string) *GRPCWebEntry {
@@ -84,39 +115,21 @@ func RegisterGRPCWebYAML(raw []byte) map[string]rkentry.Entry {
 
 func RegisterGRPCWebEntry(opts ...GRPCWebEntryOption) *GRPCWebEntry {
 	entry := &GRPCWebEntry{
-		LoggerEntry: rkentry.NewLoggerEntryStdout(),
-		Type:        GrpcWebEntryType,
+		LoggerEntry:        rkentry.NewLoggerEntryStdout(),
+		Type:               GrpcWebEntryType,
+		MaxCallRecvMsgSize: 1024 * 1024 * 4,
+		Debug:              false,
+		AllowedOrigins:     []string{},
+		AllowedHeaders:     []string{},
 	}
 	for i := range opts {
 		opts[i](entry)
 	}
+
+	fmt.Println("RegisterGRPCWebEntry", entry)
+
 	rkentry.GlobalAppCtx.AddEntry(entry)
 	return entry
-}
-
-type GRPCWebEntryOption func(*GRPCWebEntry)
-
-type GRPCWebEntry struct {
-	Name        string               `yaml:"name" json:"name"`
-	Enabled     bool                 `yaml:"enabled" json:"enabled"`
-	Description string               `yaml:"description" json:"description"`
-	LoggerEntry *rkentry.LoggerEntry `json:"-" yaml:"-"`
-	Type        string               `yaml:"type" json:"type"`
-	GrpcEntry   *rkgrpc.GrpcEntry    `yaml:"-" json:"-"`
-	CertEntry   *rkentry.CertEntry   `json:"-" yaml:"-"`
-
-	ServerAddress string `yaml:"serverAddress" json:"server_address"`
-
-	BindAddress         string        `yaml:"bindAddress" json:"bind_address"`
-	BindPort            int           `yaml:"bindPort" json:"bind_port"`
-	MaxCallRecvMsgSize  int           `yaml:"maxCallRecvMsgSize" json:"max_call_recv_msg_size"`
-	AllowedOrigins      []string      `yaml:"allowedOrigins" json:"allowed_origins"`
-	AllowedHeaders      []string      `yaml:"allowedHeaders" json:"allowed_headers"`
-	Websockets          *Websockets   `yaml:"websockets" json:"websockets"`
-	Debug               bool          `yaml:"debug" json:"debug"`
-	HttpMaxWriteTimeout time.Duration `yaml:"http_max_write_timeout" json:"http_max_write_timeout"`
-	HttpMaxReadTimeout  time.Duration `yaml:"http_max_read_timeout" json:"http_max_read_timeout"`
-	Port                int           `yaml:"port" json:"port"`
 }
 
 func (e GRPCWebEntry) Bootstrap(ctx context.Context) {
@@ -127,6 +140,7 @@ func (e GRPCWebEntry) Start() {
 	if e.GrpcEntry != nil {
 		e.ServerAddress = fmt.Sprintf("localhost:%d", e.GrpcEntry.Port)
 	}
+
 	e.LoggerEntry.Info(fmt.Sprintf("gRPC web start with %s", e.ServerAddress))
 
 	if len(e.ServerAddress) < 1 {
@@ -237,7 +251,9 @@ func WithCertEntry(certEntry string) GRPCWebEntryOption {
 
 func WithMaxCallRecvMsgSize(maxCallRecvMsgSize int) GRPCWebEntryOption {
 	return func(entry *GRPCWebEntry) {
-		entry.MaxCallRecvMsgSize = maxCallRecvMsgSize
+		if maxCallRecvMsgSize > 0 {
+			entry.MaxCallRecvMsgSize = maxCallRecvMsgSize
+		}
 	}
 }
 

@@ -14,7 +14,7 @@
 # Dependency directories (remove the comment below to include it)
 vendor/
 # Node
-example-client/node_modules
+example-client
 npm-debug.log
 yarn-error.log
 

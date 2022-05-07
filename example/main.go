@@ -4,10 +4,11 @@ import (
 	"context"
 	_ "embed"
 	proto "example/api"
+	"fmt"
 	rkboot "github.com/rookie-ninja/rk-boot/v2"
 	rkgrpc "github.com/rookie-ninja/rk-grpc/v2/boot"
 	"google.golang.org/grpc"
-	_ "rkgrpcweb/boot" //启动GRPC代理
+	_ "rkgrpcwebproxy/boot" //启动GRPC代理
 )
 
 //go:embed boot.yaml
@@ -32,6 +33,6 @@ type GreeterServer struct{}
 
 func (g GreeterServer) SayHello(ctx context.Context, request *proto.HelloRequest) (*proto.HelloResponse, error) {
 	return &proto.HelloResponse{
-		Message: "Hello!",
+		Message: fmt.Sprintf("Hello %s!", request.Name),
 	}, nil
 }
